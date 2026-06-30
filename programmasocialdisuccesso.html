@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social di Successo — con Chiara Travaglini</title>
+<style>
+  :root{
+    --viola-scuro:#381971;
+    --viola-medio:#7B65B8;
+    --lime:#F5FD99;
+    --nero:#000000;
+    --fondo:#F7F5FC;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Helvetica Neue', Inter, Arial, sans-serif;
+    background:var(--fondo);
+    color:var(--nero);
+    line-height:1.5;
+  }
+  .container{max-width:1100px;margin:0 auto;padding:0 24px;}
+
+  /* CTA button */
+  .cta{
+    display:inline-block;
+    background:var(--lime);
+    color:var(--viola-scuro);
+    font-weight:700;
+    text-decoration:none;
+    padding:16px 36px;
+    border-radius:999px;
+    font-size:1.05rem;
+    transition:transform .15s ease;
+  }
+  .cta:hover{transform:translateY(-2px);}
+
+  /* HERO */
+  .hero{
+    background:var(--viola-scuro);
+    color:#fff;
+    padding:90px 0 70px;
+    text-align:center;
+  }
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:.85rem;
+    color:var(--lime);
+    font-weight:700;
+    margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:3.2rem;
+    font-weight:800;
+    margin-bottom:8px;
+  }
+  .hero h2{
+    font-size:1.4rem;
+    font-weight:400;
+    color:var(--viola-medio);
+    margin-bottom:28px;
+  }
+  .badge{
+    display:inline-block;
+    background:var(--lime);
+    color:var(--viola-scuro);
+    font-weight:700;
+    padding:8px 20px;
+    border-radius:999px;
+    font-size:.95rem;
+    margin-bottom:32px;
+  }
+  .manifesto{
+    max-width:680px;
+    margin:0 auto 36px;
+    font-size:1.1rem;
+    color:#EDE9F8;
+  }
+  .struttura{
+    font-size:1rem;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .sottoriga{
+    font-size:.95rem;
+    color:var(--viola-medio);
+    margin-bottom:36px;
+  }
+
+  /* LESSONS */
+  .lessons{
+    padding:80px 0;
+  }
+  .lessons-title{
+    text-align:center;
+    font-size:2rem;
+    color:var(--viola-scuro);
+    font-weight:800;
+    margin-bottom:50px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:28px;
+  }
+  @media(max-width:780px){
+    .grid{grid-template-columns:1fr;}
+    .hero h1{font-size:2.2rem;}
+  }
+  .card{
+    background:#fff;
+    border-radius:18px;
+    padding:32px;
+    box-shadow:0 6px 24px rgba(56,25,113,.08);
+  }
+  .card .num{
+    display:inline-block;
+    background:var(--viola-scuro);
+    color:#fff;
+    font-weight:800;
+    font-size:.85rem;
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:16px;
+  }
+  .card .claim{
+    font-size:1.25rem;
+    font-weight:800;
+    color:var(--viola-scuro);
+    margin-bottom:18px;
+  }
+  .card ul{
+    list-style:none;
+    padding:0;
+  }
+  .card li{
+    padding:8px 0;
+    border-bottom:1px solid #EFEAFA;
+    font-size:.95rem;
+    color:#2A2A2A;
+  }
+  .card li:last-child{border-bottom:none;}
+  .card li::before{
+    content:"—";
+    color:var(--viola-medio);
+    margin-right:10px;
+    font-weight:700;
+  }
+
+  .cta-mid{
+    text-align:center;
+    padding:50px 0 10px;
+  }
+
+  /* FOOTER CTA */
+  .footer-cta{
+    background:var(--viola-scuro);
+    color:#fff;
+    text-align:center;
+    padding:80px 0;
+  }
+  .footer-cta .badge{margin-bottom:24px;}
+  .footer-cta p{
+    max-width:600px;
+    margin:0 auto 32px;
+    color:#EDE9F8;
+    font-size:1.05rem;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="eyebrow">Corso professionalizzante per Social Media Manager</div>
+    <h1>Social di Successo</h1>
+    <h2>con Chiara Travaglini</h2>
+    <div class="badge">pubblicare ≠ acquisire</div>
+    <p class="manifesto">
+      Non formiamo chi fa la grafica o il reel virale. Formiamo la figura completa:
+      una persona capace di acquisire clienti, misurare i risultati e prendere decisioni
+      strategiche. Ogni elemento che vedrai — un colore, una bio, un contenuto, una storia —
+      non vale per com'è fatto, ma per cosa fa muovere. Se non sposta nessuno verso
+      un'azione, non serve.
+    </p>
+    <div class="struttura">4 lezioni · un mese · teoria e pratica</div>
+    <div class="sottoriga">Dalle basi del profilo fino alla SMM come stratega capace di portare risultati.</div>
+  </div>
+</header>
+
+<section class="lessons">
+  <div class="container">
+    <div class="lessons-title">Le 4 lezioni</div>
+    <div class="grid">
+
+      <div class="card">
+        <span class="num">LEZIONE 01 — Le basi (strategiche)</span>
+        <div class="claim">Il profilo non è una vetrina: è un asset di acquisizione.</div>
+        <ul>
+          <li>Intro e presentazioni</li>
+          <li>Il questionario come strumento strategico: estrarre posizionamento, target e promessa</li>
+          <li>Target e Tone of Voice: non chi ci piace, ma chi compra — e come gli si parla per convertirlo</li>
+          <li>Palette colori</li>
+          <li>Font</li>
+          <li>Immagine del profilo</li>
+          <li>Nome e Nome utente</li>
+          <li>Biografia (come mini-offerta)</li>
+          <li>Storie in evidenza (come percorso, non archivio)</li>
+          <li>Link in bio (l'inizio del funnel)</li>
+          <li>Impostazioni del profilo interessanti</li>
+          <li>Fondamenta di personal branding: chi sei, perché te, come si costruisce autorità</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="num">LEZIONE 02 — Creare contenuti che acquisiscono</span>
+        <div class="claim">Ogni contenuto ha un obiettivo: attrarre, nutrire, convertire.</div>
+        <ul>
+          <li>Piano editoriale</li>
+          <li>Contenuti grafici (in breve)</li>
+          <li>Idee contenuti: architettura macro – micro – collaterali</li>
+          <li>Contenuti che costruiscono autorità e status, non solo visualizzazioni</li>
+          <li>Strumenti AI per ideazione e scrittura contenuti</li>
+          <li>Consigli su registrazione ed editing</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="num">LEZIONE 03 — Monetizzare il profilo</span>
+        <div class="claim">Non tattiche sciolte: una macchina che porta fatturato.</div>
+        <ul>
+          <li>Scala di valore</li>
+          <li>Prodotto/servizio esca</li>
+          <li>Stories e Promotion Cycle</li>
+          <li>Gestione della chat</li>
+          <li>Possedere il traffico</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="num">LEZIONE 04 — La SMM come stratega</span>
+        <div class="claim">Saper dimostrare il valore separa una freelance da una professionista pagata bene.</div>
+        <ul>
+          <li>Analisi delle performance: metriche di acquisizione (conversazioni, lead, conversioni) e come leggerle per decidere</li>
+          <li>Come rendicontare il risultato al cliente: trasformare i dati in prova di valore</li>
+          <li>Tool di programmazione</li>
+          <li>Gestione degli "haters" e delle collaborazioni</li>
+        </ul>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<section class="footer-cta" id="prenota">
+  <div class="container">
+    <div class="badge">pubblicare ≠ acquisire</div>
+    <p>Quattro lezioni per diventare la figura completa che i clienti pagano bene: non chi pubblica, ma chi fa crescere il fatturato.</p>
+  </div>
+</section>
+
+</body>
+</html>
