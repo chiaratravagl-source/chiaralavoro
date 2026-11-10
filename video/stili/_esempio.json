@@ -1,0 +1,22 @@
+{
+  "_nota": "ESEMPIO, non è la guida di nessun cliente. Copia in video/stili/CLIENTE.json e compila con i valori della guida di stile. Le chiavi che iniziano con _ sono ignorate.",
+  "cliente": "ESEMPIO",
+  "font": "Inter",
+  "cartella_font": null,
+  "grassetto": true,
+  "dimensione": 72,
+  "colore_testo": "#FFFFFF",
+  "colore_contorno": "#000000",
+  "spessore_contorno": 4,
+  "ombra": 0,
+  "sfondo": null,
+  "colore_evidenza": null,
+  "maiuscolo": false,
+  "rimuovi_punteggiatura": false,
+  "allineamento": "basso",
+  "margine_verticale_px": 420,
+  "margine_laterale_px": 90,
+  "max_caratteri_riga": 22,
+  "max_righe": 2,
+  "max_parole": null
+}
