@@ -1,0 +1,398 @@
+<title>Sala Montaggio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: banda di stato in alto, poi due colonne — elenco dei video a sinistra, banco di revisione (player + note col timecode) a destra. */
+:root {
+  --bg: #F7F5FC; --surface: #FFFFFF; --sunken: #EFEBF8; --fg: #1D1235; --muted: #6B6184; --line: #DDD5EE;
+  --accent: #381971; --accent-soft: #7B65B8; --on-accent: #FFFFFF; --lime: #F5FD99; --on-lime: #381971;
+  --s-montaggio: #7B65B8; --s-attesa: #B45309; --s-modifica: #C2264B; --s-approvato: #1F7A4D; --s-consegnato: #6B6184;
+  --font: "Helvetica Neue", Inter, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #130C24; --surface: #1D1434; --sunken: #170F2B; --fg: #EEEAF9; --muted: #A69DC0; --line: #352A52;
+  --accent: #C3B3F5; --accent-soft: #9482D0; --on-accent: #1D1235; --lime: #F5FD99; --on-lime: #381971;
+  --s-montaggio: #A996EA; --s-attesa: #F2B155; --s-modifica: #FF7D97; --s-approvato: #5FD39A; --s-consegnato: #A69DC0;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #130C24; --surface: #1D1434; --sunken: #170F2B; --fg: #EEEAF9; --muted: #A69DC0; --line: #352A52;
+  --accent: #C3B3F5; --accent-soft: #9482D0; --on-accent: #1D1235; --lime: #F5FD99; --on-lime: #381971;
+  --s-montaggio: #A996EA; --s-attesa: #F2B155; --s-modifica: #FF7D97; --s-approvato: #5FD39A; --s-consegnato: #A69DC0;
+  color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
+* { box-sizing: border-box; }
+button, select, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+header.testa { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+header.testa h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--accent); }
+header.testa p { margin: 0; color: var(--muted); }
+#avviso { background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; color: var(--muted); }
+
+.stati { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.stato-btn { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: left;
+  display: flex; flex-direction: column; gap: 2px; }
+.stato-btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.stato-btn .num { font: 600 22px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.stato-btn .nome { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.stato-btn .chi { color: var(--muted); font-size: 12.5px; }
+.pallino { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; }
+
+.griglia { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 820px) { .griglia { grid-template-columns: minmax(0, 1fr); } }
+
+#elenco { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.voce { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px;
+  padding: 10px 12px; text-align: left; display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.voce[aria-current="true"] { border-color: var(--accent); border-left-color: var(--c); background: var(--sunken); }
+.voce .t { font-weight: 600; overflow-wrap: anywhere; }
+.voce .m { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.voce .aperte { color: var(--s-modifica); font-weight: 600; }
+.vuoto { border: 1px dashed var(--line); border-radius: 10px; padding: 22px; color: var(--muted); }
+.vuoto strong { color: var(--fg); display: block; margin-bottom: 4px; }
+
+#scheda { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.scheda-testa { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.scheda-testa h2 { margin: 0; font-size: 20px; letter-spacing: -0.01em; overflow-wrap: anywhere; text-wrap: balance; }
+.meta { color: var(--muted); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--c); color: var(--c); border-radius: 999px; padding: 3px 10px; font-weight: 600; font-size: 13px; }
+#messaggio { background: var(--lime); color: var(--on-lime); border-radius: 8px; padding: 10px 14px; font-weight: 500; }
+.azioni { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 14px; font-weight: 600; }
+.btn:hover { border-color: var(--accent-soft); }
+.btn.primario { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.lime { background: var(--lime); color: var(--on-lime); border-color: var(--lime); }
+.btn.piccolo { padding: 4px 9px; font-size: 13px; font-weight: 500; }
+.btn:disabled { opacity: .5; cursor: default; }
+select.btn { padding-right: 8px; }
+
+.banco { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 18px; align-items: start; }
+.banco.orizzontale, .banco.stretto { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1040px) { .banco { grid-template-columns: minmax(0, 1fr); } }
+.visore { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+video { display: block; background: #000; border-radius: 8px; max-width: 100%; width: 300px; aspect-ratio: 9 / 16; }
+.orizzontale video { width: 100%; aspect-ratio: 16 / 9; }
+.senza-video { width: 300px; max-width: 100%; aspect-ratio: 9 / 16; border: 1px dashed var(--line); border-radius: 8px; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 16px; }
+.orizzontale .senza-video { width: 100%; aspect-ratio: 16 / 9; }
+#barra { position: relative; height: 22px; background: var(--sunken); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+#barra .ora { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+#barra .tag { position: absolute; top: 3px; bottom: 3px; width: 6px; margin-left: -3px; border: 0; padding: 0; border-radius: 3px; background: var(--s-modifica); }
+#barra .tag.risolta { background: var(--s-approvato); opacity: .6; }
+#barra .taglio { position: absolute; top: 0; bottom: 0; background: var(--s-attesa); opacity: .45; }
+.tc { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+.sotto-visore { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12.5px; }
+
+.pannelli { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.schede { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.scheda-tab { border: 0; background: none; padding: 8px 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.scheda-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.componi { display: flex; flex-direction: column; gap: 8px; background: var(--sunken); border-radius: 10px; padding: 12px; }
+.componi .riga { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.componi textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+.componi label { font-weight: 600; }
+.lista { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.nota { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; }
+.nota.risolta { opacity: .65; }
+.nota .quando { border: 1px solid var(--line); background: var(--sunken); border-radius: 6px; padding: 2px 8px; align-self: start; }
+.nota .corpo { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.nota .testo { overflow-wrap: anywhere; white-space: pre-wrap; }
+.nota .risposta { border-left: 3px solid var(--accent-soft); padding-left: 10px; color: var(--muted); overflow-wrap: anywhere; white-space: pre-wrap; }
+.nota .piede { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; color: var(--muted); font-size: 12.5px; }
+.chip { border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-size: 12px; }
+.taglio-riga { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 4px 10px; align-items: start; }
+.taglio-riga.spento { opacity: .55; }
+.taglio-riga input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
+.taglio-riga .contesto { overflow-wrap: anywhere; }
+.taglio-riga .sub { color: var(--muted); font-size: 12.5px; }
+.riepilogo { color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header class="testa">
+    <h1>Sala Montaggio</h1>
+    <p>Cosa è in lavorazione, cosa aspetta te, e le note sul secondo esatto.</p>
+  </header>
+  <div id="avviso" hidden></div>
+  <nav class="stati" id="stati" aria-label="Filtra per stato"></nav>
+  <main class="griglia">
+    <section id="elenco" aria-label="Video"></section>
+    <section id="dettaglio" aria-live="polite">
+      <div class="vuoto" id="nessuno"><strong>Nessun video selezionato</strong>Scegli un video dall'elenco per vedere l'anteprima e lasciare note sul punto esatto.</div>
+      <article id="scheda" hidden>
+        <div class="scheda-testa">
+          <div>
+            <h2 id="d-titolo"></h2>
+            <div class="meta" id="d-meta"></div>
+          </div>
+          <span class="pill" id="d-stato"></span>
+        </div>
+        <div id="messaggio" hidden></div>
+        <div class="azioni">
+          <button class="btn lime" id="az-approva" type="button">Approva</button>
+          <button class="btn" id="az-modifica" type="button">Chiedi modifiche</button>
+          <label for="az-stato" class="meta">Stato</label>
+          <select class="btn" id="az-stato"></select>
+        </div>
+        <div class="banco" id="banco">
+          <div class="visore">
+            <div id="porta-video"></div>
+            <div id="barra" aria-hidden="true"></div>
+            <div class="sotto-visore"><span class="tc" id="ora">0:00.0</span><span id="fase-anteprima"></span></div>
+          </div>
+          <div class="pannelli">
+            <div class="schede" role="tablist">
+              <button class="scheda-tab" role="tab" id="tab-note" type="button" aria-selected="true">Note</button>
+              <button class="scheda-tab" role="tab" id="tab-tagli" type="button" aria-selected="false">Tagli</button>
+            </div>
+            <div id="p-note">
+              <form class="componi" id="componi">
+                <div class="riga">
+                  <label for="n-testo">Nota a <span class="tc" id="n-tempo">0:00.0</span></label>
+                  <button class="btn piccolo" id="n-adesso" type="button">Usa il punto attuale</button>
+                  <select class="btn piccolo" id="n-tipo" aria-label="Argomento della nota">
+                    <option value="taglio">Taglio</option><option value="sottotitoli">Sottotitoli</option>
+                    <option value="grafica">Grafica</option><option value="b-roll">B-roll</option>
+                    <option value="audio">Audio</option><option value="altro">Altro</option>
+                  </select>
+                </div>
+                <textarea id="n-testo" placeholder="Metti in pausa sul punto, poi scrivi cosa cambiare"></textarea>
+                <div class="riga"><button class="btn primario" type="submit" id="n-salva">Aggiungi nota</button><span class="meta" id="n-esito"></span></div>
+              </form>
+              <ul class="lista" id="lista-note" style="margin-top:12px"></ul>
+            </div>
+            <div id="p-tagli" hidden>
+              <p class="riepilogo" id="tagli-riepilogo"></p>
+              <ul class="lista" id="lista-tagli"></ul>
+              <div class="azioni" style="margin-top:12px"><button class="btn lime" id="az-tagli" type="button">Approva lista tagli</button><span class="meta" id="tagli-esito"></span></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script>
+const STATI = {
+  in_montaggio:  { nome: "In montaggio",    chi: "ci sta lavorando Claude", c: "var(--s-montaggio)" },
+  in_attesa:     { nome: "In attesa di te", chi: "serve il tuo ok",         c: "var(--s-attesa)" },
+  da_modificare: { nome: "Da modificare",   chi: "note da applicare",       c: "var(--s-modifica)" },
+  approvato:     { nome: "Approvato",       chi: "pronto per il render",    c: "var(--s-approvato)" },
+  consegnato:    { nome: "Consegnato",      chi: "file inviati",            c: "var(--s-consegnato)" },
+};
+const FASI = { girato: "Girato originale", tagli: "Girato originale", bozza: "Bozza", finale: "Versione finale" };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const tc = (t) => { t = Math.max(0, Number(t) || 0); const m = Math.floor(t / 60); return m + ":" + (t - m * 60).toFixed(1).padStart(4, "0"); };
+
+const S = { db: null, video: [], note: [], filtro: null, scelto: null, scheda: "note", tempoNota: 0, montato: null, puoScrivere: true, caricato: false };
+try { S.scelto = localStorage.getItem("sm-scelto"); } catch (e) {}
+
+function avviso(testo) { $("avviso").textContent = testo || ""; $("avviso").hidden = !testo; }
+const videoScelto = () => S.video.find((v) => v.id === S.scelto) || null;
+const noteDi = (id) => S.note.filter((n) => n.video === id).sort((a, b) => a.t - b.t);
+const player = () => document.querySelector("#porta-video video");
+
+async function scrivi(azione) {
+  try { await azione(); return true; }
+  catch (e) {
+    if (e && e.code === "invalid_argument") { S.puoScrivere = false; avviso("Puoi solo guardare: per scrivere serve il permesso di modifica su questa pagina."); disegna(); }
+    else avviso("Salvataggio non riuscito, riprova tra poco.");
+    return false;
+  }
+}
+const tocca = (id, campi) => scrivi(() => S.db.doc("video/" + id).update({ ...campi, aggiornato: new Date().toISOString() }));
+
+function disegnaStati() {
+  $("stati").innerHTML = Object.entries(STATI).map(([k, s]) => {
+    const n = S.video.filter((v) => v.stato === k).length;
+    return `<button class="stato-btn" type="button" data-stato="${k}" aria-pressed="${S.filtro === k}" style="--c:${s.c}">
+      <span class="num">${n}</span><span class="nome"><span class="pallino"></span>${s.nome}</span><span class="chi">${s.chi}</span></button>`;
+  }).join("");
+}
+
+function disegnaElenco() {
+  const ordine = Object.keys(STATI);
+  const lista = S.video.filter((v) => !S.filtro || v.stato === S.filtro)
+    .sort((a, b) => ordine.indexOf(a.stato) - ordine.indexOf(b.stato) || String(b.aggiornato || "").localeCompare(String(a.aggiornato || "")));
+  if (!lista.length) {
+    $("elenco").innerHTML = !S.caricato ? `<div class="vuoto">Carico i video…</div>`
+      : S.video.length ? `<div class="vuoto"><strong>Nessun video in questo stato</strong>Tocca di nuovo il riquadro in alto per togliere il filtro.</div>`
+      : `<div class="vuoto"><strong>Ancora nessun video</strong>Quando chiedi a Claude di montare un video, compare qui con il suo stato e l'anteprima da commentare.</div>`;
+    return;
+  }
+  $("elenco").innerHTML = lista.map((v) => {
+    const s = STATI[v.stato] || STATI.in_montaggio;
+    const aperte = noteDi(v.id).filter((n) => n.stato !== "risolta").length;
+    return `<button class="voce" type="button" data-video="${esc(v.id)}" aria-current="${v.id === S.scelto}" style="--c:${s.c}">
+      <span class="t">${esc(v.titolo || v.id)}</span>
+      <span class="m"><span>${esc(v.cliente || "senza cliente")}</span><span>${esc(v.formato || "9:16")}</span><span>v${esc(v.versione || 1)}</span><span>${s.nome}</span>
+      ${aperte ? `<span class="aperte">${aperte} ${aperte === 1 ? "nota aperta" : "note aperte"}</span>` : ""}</span></button>`;
+  }).join("");
+}
+
+function montaVideo(v) {
+  const chiave = v.id + "|" + (v.anteprima || "");
+  if (S.montato === chiave) return;
+  S.montato = chiave;
+  S.tempoNota = 0;
+  const porta = $("porta-video");
+  if (v.anteprima) {
+    porta.innerHTML = `<video controls playsinline preload="metadata"></video>`;
+    const el = porta.firstChild;
+    el.src = v.anteprima;
+    el.addEventListener("timeupdate", aggiornaTempo);
+    el.addEventListener("seeked", aggiornaTempo);
+    el.addEventListener("loadedmetadata", disegnaBarra);
+  } else {
+    porta.innerHTML = `<div class="senza-video">Anteprima non ancora caricata.<br>Arriva appena c'è qualcosa da guardare.</div>`;
+  }
+  aggiornaTempo();
+}
+function durata(v) { const el = player(); return (el && isFinite(el.duration) && el.duration) || Number(v.durata) || 0; }
+function aggiornaTempo() {
+  const el = player(), t = el ? el.currentTime : 0;
+  $("ora").textContent = tc(t);
+  if (document.activeElement !== $("n-testo") && !$("n-testo").value) { S.tempoNota = t; $("n-tempo").textContent = tc(t); }
+  const v = videoScelto(), d = v ? durata(v) : 0, ago = document.querySelector("#barra .ora");
+  if (ago && d) ago.style.left = Math.min(100, (t / d) * 100) + "%";
+}
+function vaiA(t) { const el = player(); if (el) { el.currentTime = t; el.pause(); } }
+
+function disegnaBarra() {
+  const v = videoScelto(); if (!v) return;
+  const d = durata(v);
+  let h = `<span class="ora" style="left:0"></span>`;
+  if (d) {
+    if (S.scheda === "tagli" && tempiSulGirato(v)) h += (v.tagli || []).filter((t) => t.attivo).map((t) =>
+      `<span class="taglio" style="left:${(t.inizio / d) * 100}%;width:${((t.fine - t.inizio) / d) * 100}%"></span>`).join("");
+    h += noteDi(v.id).map((n) => `<button class="tag ${n.stato === "risolta" ? "risolta" : ""}" type="button" data-vai="${n.t}" tabindex="-1" title="${esc(tc(n.t))}" style="left:${Math.min(100, (n.t / d) * 100)}%"></button>`).join("");
+  }
+  $("barra").innerHTML = h;
+  aggiornaTempo();
+}
+const tempiSulGirato = (v) => !v.fase_anteprima || v.fase_anteprima === "girato" || v.fase_anteprima === "tagli";
+
+function disegnaNote(v) {
+  const note = noteDi(v.id);
+  $("lista-note").innerHTML = note.length ? note.map((n) => `
+    <li class="nota ${n.stato === "risolta" ? "risolta" : ""}">
+      <button class="quando tc" type="button" data-vai="${n.t}" title="Vai a questo punto">${tc(n.t)}</button>
+      <div class="corpo">
+        <div class="testo">${esc(n.testo)}</div>
+        ${n.risposta ? `<div class="risposta">Claude: ${esc(n.risposta)}</div>` : ""}
+        <div class="piede"><span class="chip">${esc(n.tipo || "altro")}</span><span>su v${esc(n.versione || 1)}</span>
+          <span>${n.stato === "risolta" ? "Risolta" : "Aperta"}</span>
+          <button class="btn piccolo" type="button" data-nota="${esc(n.id)}" data-fai="${n.stato === "risolta" ? "riapri" : "risolvi"}">${n.stato === "risolta" ? "Riapri" : "Segna risolta"}</button>
+          <button class="btn piccolo" type="button" data-nota="${esc(n.id)}" data-fai="elimina">Elimina</button></div>
+      </div></li>`).join("")
+    : `<li class="vuoto"><strong>Nessuna nota su questo video</strong>Metti in pausa sul punto da cambiare e scrivi la nota: resta agganciata a quel secondo.</li>`;
+}
+
+function disegnaTagli(v) {
+  const tagli = v.tagli || [], sulGirato = tempiSulGirato(v);
+  const attivi = tagli.filter((t) => t.attivo), tolti = attivi.reduce((s, t) => s + (t.fine - t.inizio), 0);
+  $("tagli-riepilogo").textContent = !tagli.length ? ""
+    : `${attivi.length} tagli attivi su ${tagli.length}, tolgono ${tolti.toFixed(1)} secondi. I tempi sono quelli del girato originale` +
+      (sulGirato ? "." : ": l'anteprima qui sopra è già tagliata, quindi i tempi non coincidono.");
+  $("lista-tagli").innerHTML = tagli.length ? tagli.map((t) => `
+    <li class="taglio-riga ${t.attivo ? "" : "spento"}">
+      <input type="checkbox" id="tg-${esc(t.id)}" data-taglio="${esc(t.id)}" ${t.attivo ? "checked" : ""} ${v.tagli_approvati || !S.puoScrivere ? "disabled" : ""} aria-label="Applica il taglio ${esc(t.id)}">
+      <button class="quando tc btn piccolo" type="button" ${sulGirato ? `data-vai="${Math.max(0, t.inizio - 1.5)}"` : "disabled"} title="Guarda il punto">${tc(t.inizio)}–${tc(t.fine)}</button>
+      <div><div class="contesto">${esc(t.contesto || "")}</div><div class="sub">${esc(t.tipo || "taglio")} · ${(t.fine - t.inizio).toFixed(2)} s</div></div>
+    </li>`).join("")
+    : `<li class="vuoto"><strong>Lista tagli non ancora pronta</strong>Compare qui dopo la trascrizione: spunti i tagli da tenere e approvi la lista.</li>`;
+  $("az-tagli").hidden = !tagli.length;
+  $("az-tagli").disabled = !!v.tagli_approvati || !S.puoScrivere;
+  $("az-tagli").textContent = v.tagli_approvati ? "Lista tagli approvata" : "Approva lista tagli";
+}
+
+function disegnaScheda() {
+  const v = videoScelto();
+  $("nessuno").hidden = !!v; $("scheda").hidden = !v;
+  if (!v) { S.montato = null; return; }
+  const s = STATI[v.stato] || STATI.in_montaggio;
+  $("d-titolo").textContent = v.titolo || v.id;
+  $("d-meta").innerHTML = `<span>${esc(v.cliente || "senza cliente")}</span><span>${esc(v.formato || "9:16")}</span><span>versione ${esc(v.versione || 1)}</span>` +
+    (v.aggiornato ? `<span>aggiornato ${esc(new Date(v.aggiornato).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }))}</span>` : "");
+  $("d-stato").style.setProperty("--c", s.c); $("d-stato").innerHTML = `<span class="pallino"></span>${s.nome}`;
+  $("messaggio").hidden = !v.messaggio; $("messaggio").textContent = v.messaggio || "";
+  $("az-stato").innerHTML = Object.entries(STATI).map(([k, x]) => `<option value="${k}" ${k === v.stato ? "selected" : ""}>${x.nome}</option>`).join("");
+  for (const id of ["az-approva", "az-modifica", "az-stato", "n-salva"]) $(id).disabled = !S.puoScrivere;
+  $("banco").classList.toggle("orizzontale", v.formato === "16:9");
+  $("fase-anteprima").textContent = v.anteprima ? (FASI[v.fase_anteprima] || "Anteprima") + " · anteprima compressa" : "";
+  $("tab-note").setAttribute("aria-selected", S.scheda === "note"); $("tab-tagli").setAttribute("aria-selected", S.scheda === "tagli");
+  $("tab-tagli").textContent = "Tagli" + ((v.tagli || []).length ? ` (${v.tagli.length})` : "");
+  const aperte = noteDi(v.id).filter((n) => n.stato !== "risolta").length;
+  $("tab-note").textContent = "Note" + (aperte ? ` (${aperte} aperte)` : "");
+  $("p-note").hidden = S.scheda !== "note"; $("p-tagli").hidden = S.scheda !== "tagli";
+  montaVideo(v); disegnaNote(v); disegnaTagli(v); disegnaBarra();
+}
+function disegna() { disegnaStati(); disegnaElenco(); disegnaScheda(); }
+
+function scegli(id) { S.scelto = id; S.scheda = "note"; try { localStorage.setItem("sm-scelto", id); } catch (e) {} $("n-testo").value = ""; $("n-esito").textContent = ""; disegna(); }
+
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  if (b.dataset.stato) { S.filtro = S.filtro === b.dataset.stato ? null : b.dataset.stato; disegnaStati(); disegnaElenco(); return; }
+  if (b.dataset.video) { scegli(b.dataset.video); return; }
+  if (b.dataset.vai !== undefined) { vaiA(Number(b.dataset.vai)); return; }
+  const v = videoScelto(); if (!v) return;
+  if (b.id === "tab-note" || b.id === "tab-tagli") { S.scheda = b.id === "tab-note" ? "note" : "tagli"; disegnaScheda(); return; }
+  if (b.id === "n-adesso") { const el = player(); S.tempoNota = el ? el.currentTime : 0; $("n-tempo").textContent = tc(S.tempoNota); return; }
+  if (b.id === "az-approva") { await tocca(v.id, { stato: "approvato" }); return; }
+  if (b.id === "az-modifica") { await tocca(v.id, { stato: "da_modificare" }); return; }
+  if (b.id === "az-tagli") { if (await tocca(v.id, { tagli_approvati: true, stato: "in_montaggio" })) $("tagli-esito").textContent = "Approvata. Di' a Claude di procedere."; return; }
+  if (b.dataset.nota) {
+    const rif = S.db.doc("note/" + b.dataset.nota), fai = b.dataset.fai;
+    if (fai === "elimina") {
+      if (b.dataset.conferma) await scrivi(() => rif.delete());
+      else { b.dataset.conferma = "1"; b.textContent = "Conferma eliminazione"; }
+    } else await scrivi(() => rif.update({ stato: fai === "risolvi" ? "risolta" : "aperta" }));
+  }
+});
+$("az-stato").addEventListener("change", (ev) => { const v = videoScelto(); if (v) tocca(v.id, { stato: ev.target.value }); });
+$("n-testo").addEventListener("focus", () => { const el = player(); if (el) { el.pause(); if (!$("n-testo").value) { S.tempoNota = el.currentTime; $("n-tempo").textContent = tc(S.tempoNota); } } });
+$("componi").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const v = videoScelto(), testo = $("n-testo").value.trim();
+  if (!v || !S.db) return;
+  if (!testo) { $("n-esito").textContent = "Scrivi prima la nota."; return; }
+  $("n-salva").disabled = true;
+  const ok = await scrivi(() => S.db.collection("note").add({ video: v.id, t: Math.round(S.tempoNota * 10) / 10, testo, tipo: $("n-tipo").value,
+    stato: "aperta", versione: v.versione || 1, creato: new Date().toISOString() }));
+  $("n-salva").disabled = !S.puoScrivere;
+  if (ok) { $("n-testo").value = ""; $("n-esito").textContent = "Nota aggiunta a " + tc(S.tempoNota) + "."; }
+});
+document.addEventListener("change", async (ev) => {
+  const c = ev.target.closest("input[data-taglio]"); if (!c) return;
+  const v = videoScelto(); if (!v) return;
+  const tagli = (v.tagli || []).map((t) => (String(t.id) === c.dataset.taglio ? { ...t, attivo: c.checked } : { ...t }));
+  await tocca(v.id, { tagli });
+});
+
+(async function avvia() {
+  disegna();
+  const usa = (nome) => (window.claude && window.claude.use ? window.claude.use(nome) : Promise.resolve(null));
+  const db = await usa("db");
+  if (!db) { S.caricato = true; avviso("I dati non sono disponibili in questa vista. Apri la pagina da claude.ai con il tuo account."); disegna(); return; }
+  S.db = db;
+  const user = await usa("user");
+  if (user) { const puo = await user.can("data.write"); if (puo === false) S.puoScrivere = false; }
+  let arrivati = 0;
+  const timer = setTimeout(() => { if (arrivati < 2) avviso("I dati non sono ancora raggiungibili: quello che vedi potrebbe non essere aggiornato."); }, 10000);
+  const pronto = (snap) => { if (!snap.metadata.fromCache) { arrivati++; if (arrivati >= 2) { clearTimeout(timer); if ($("avviso").textContent.startsWith("I dati non sono ancora")) avviso(""); } } };
+  const guasto = () => { clearTimeout(timer); S.caricato = true; avviso("Collegamento ai dati interrotto. Ricarica la pagina per riprovare."); disegna(); };
+  db.collection("video").onSnapshot((snap) => {
+    S.video = snap.docs.map((d) => ({ id: d.id, ...d.data() })); S.caricato = true;
+    if (S.scelto && !videoScelto()) S.scelto = null;
+    pronto(snap); disegna();
+  }, guasto);
+  db.collection("note").onSnapshot((snap) => { S.note = snap.docs.map((d) => ({ id: d.id, ...d.data() })); pronto(snap); disegna(); }, guasto);
+})();
+</script>
