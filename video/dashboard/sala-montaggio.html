@@ -6,19 +6,19 @@
 :root {
   --bg: #F7F5FC; --surface: #FFFFFF; --sunken: #EFEBF8; --fg: #1D1235; --muted: #6B6184; --line: #DDD5EE;
   --accent: #381971; --accent-soft: #7B65B8; --on-accent: #FFFFFF; --lime: #F5FD99; --on-lime: #381971;
-  --s-montaggio: #7B65B8; --s-attesa: #B45309; --s-modifica: #C2264B; --s-approvato: #1F7A4D; --s-consegnato: #6B6184;
+  --s-montaggio: #7B65B8; --s-attesa: #B45309; --s-modifica: #C2264B; --s-approvato: #1F7A4D; --s-programmato: #6B6184;
   --font: "Helvetica Neue", Inter, Arial, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #130C24; --surface: #1D1434; --sunken: #170F2B; --fg: #EEEAF9; --muted: #A69DC0; --line: #352A52;
   --accent: #C3B3F5; --accent-soft: #9482D0; --on-accent: #1D1235; --lime: #F5FD99; --on-lime: #381971;
-  --s-montaggio: #A996EA; --s-attesa: #F2B155; --s-modifica: #FF7D97; --s-approvato: #5FD39A; --s-consegnato: #A69DC0;
+  --s-montaggio: #A996EA; --s-attesa: #F2B155; --s-modifica: #FF7D97; --s-approvato: #5FD39A; --s-programmato: #A69DC0;
   color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #130C24; --surface: #1D1434; --sunken: #170F2B; --fg: #EEEAF9; --muted: #A69DC0; --line: #352A52;
   --accent: #C3B3F5; --accent-soft: #9482D0; --on-accent: #1D1235; --lime: #F5FD99; --on-lime: #381971;
-  --s-montaggio: #A996EA; --s-attesa: #F2B155; --s-modifica: #FF7D97; --s-approvato: #5FD39A; --s-consegnato: #A69DC0;
+  --s-montaggio: #A996EA; --s-attesa: #F2B155; --s-modifica: #FF7D97; --s-approvato: #5FD39A; --s-programmato: #A69DC0;
   color-scheme: dark }
 
 body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font);
@@ -132,6 +132,17 @@ video { display: block; background: #000; border-radius: 8px; max-width: 100%; w
 .elemento { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .elemento .nome { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
 a.btn { text-decoration: none; display: inline-block; }
+.aree { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.aree .etichetta { color: var(--muted); font-size: 13px; margin-right: 4px; }
+.area { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; }
+.area[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.area .quanti { font: 500 12px var(--mono); opacity: .75; margin-left: 4px; }
+.programma { display: flex; flex-direction: column; gap: 10px; background: var(--sunken); border-radius: 10px; padding: 12px; }
+.programma .riga { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.programma input[type="datetime-local"], .programma textarea { border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; background: var(--surface); }
+.programma textarea { width: 100%; min-height: 70px; resize: vertical; }
+.programma label { font-weight: 600; }
+.programma .canale { font-weight: 400; display: inline-flex; gap: 5px; align-items: center; }
 </style>
 
 <div class="wrap">
@@ -140,6 +151,7 @@ a.btn { text-decoration: none; display: inline-block; }
     <p>Cosa è in lavorazione, cosa aspetta te, e le note sul secondo esatto.</p>
   </header>
   <div id="avviso" hidden></div>
+  <nav class="aree" id="aree" aria-label="Area di lavoro"></nav>
   <nav class="stati" id="stati" aria-label="Filtra per stato"></nav>
   <main class="griglia">
     <section id="elenco" aria-label="Video"></section>
@@ -229,18 +241,28 @@ const STATI = {
   in_montaggio:  { nome: "In montaggio",    chi: "ci sta lavorando Claude", c: "var(--s-montaggio)" },
   in_attesa:     { nome: "In attesa di te", chi: "serve il tuo ok",         c: "var(--s-attesa)" },
   da_modificare: { nome: "Da modificare",   chi: "note da applicare",       c: "var(--s-modifica)" },
-  approvato:     { nome: "Approvato",       chi: "pronto per il render",    c: "var(--s-approvato)" },
-  consegnato:    { nome: "Consegnato",      chi: "file inviati",            c: "var(--s-consegnato)" },
+  approvato:     { nome: "Approvato",       chi: "pronto da programmare",   c: "var(--s-approvato)" },
+  programmato:   { nome: "Programmato",     chi: "data di uscita fissata",  c: "var(--s-programmato)" },
 };
 const FASI = { girato: "Girato originale", tagli: "Girato originale", bozza: "Bozza", tagliato: "Tagliato senza sottotitoli", finale: "Versione finale" };
-const PERCORSO = [["girato", "Girato"], ["trascrizione", "Trascrizione"], ["tagli", "Tagli"], ["bozza", "Bozza 15 s"], ["render", "Render"], ["consegna", "Consegna"]];
+const PERCORSO = [["girato", "Girato"], ["trascrizione", "Trascrizione"], ["tagli", "Tagli"], ["bozza", "Bozza 15 s"], ["render", "Render"], ["programmazione", "Programmazione"]];
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const tc = (t) => { t = Math.max(0, Number(t) || 0); const m = Math.floor(t / 60); return m + ":" + (t - m * 60).toFixed(1).padStart(4, "0"); };
 
 const S = { db: null, video: [], note: [], filtro: null, scelto: null, scheda: "note", tempoNota: 0, montato: null, puoScrivere: true, caricato: false,
-  parole: [], paroleDi: null, staccaTesto: null, sel: null, versione: null, detta: -1 };
-try { S.scelto = localStorage.getItem("sm-scelto"); } catch (e) {}
+  area: null, parole: [], paroleDi: null, staccaTesto: null, sel: null, versione: null, detta: -1 };
+try { S.scelto = localStorage.getItem("sm-scelto"); S.area = localStorage.getItem("sm-area") || null; } catch (e) {}
+const CANALI = ["Instagram", "TikTok", "YouTube", "Facebook", "LinkedIn"];
+const clienteDi = (v) => v.cliente || "Senza cliente";
+const nellArea = () => S.video.filter((v) => !S.area || clienteDi(v) === S.area);
+function disegnaAree() {
+  const nomi = [...new Set(S.video.map(clienteDi))].sort((a, b) => a.localeCompare(b));
+  if (S.area && S.caricato && !nomi.includes(S.area)) S.area = null;
+  $("aree").hidden = nomi.length < 1;
+  $("aree").innerHTML = `<span class="etichetta">Area di lavoro</span>` + [[null, "Tutti i clienti", S.video.length], ...nomi.map((n) => [n, n, S.video.filter((v) => clienteDi(v) === n).length])]
+    .map(([k, nome, q]) => `<button class="area" type="button" data-area="${esc(k ?? "")}" aria-pressed="${(S.area || null) === k}">${esc(nome)}<span class="quanti">${q}</span></button>`).join("");
+}
 
 function avviso(testo) { $("avviso").textContent = testo || ""; $("avviso").hidden = !testo; }
 const videoScelto = () => S.video.find((v) => v.id === S.scelto) || null;
@@ -259,7 +281,7 @@ const tocca = (id, campi) => scrivi(() => S.db.doc("video/" + id).update({ ...ca
 
 function disegnaStati() {
   $("stati").innerHTML = Object.entries(STATI).map(([k, s]) => {
-    const n = S.video.filter((v) => v.stato === k).length;
+    const n = nellArea().filter((v) => v.stato === k).length;
     return `<button class="stato-btn" type="button" data-stato="${k}" aria-pressed="${S.filtro === k}" style="--c:${s.c}">
       <span class="num">${n}</span><span class="nome"><span class="pallino"></span>${s.nome}</span><span class="chi">${s.chi}</span></button>`;
   }).join("");
@@ -267,11 +289,11 @@ function disegnaStati() {
 
 function disegnaElenco() {
   const ordine = Object.keys(STATI);
-  const lista = S.video.filter((v) => !S.filtro || v.stato === S.filtro)
+  const lista = nellArea().filter((v) => !S.filtro || v.stato === S.filtro)
     .sort((a, b) => ordine.indexOf(a.stato) - ordine.indexOf(b.stato) || String(b.aggiornato || "").localeCompare(String(a.aggiornato || "")));
   if (!lista.length) {
     $("elenco").innerHTML = !S.caricato ? `<div class="vuoto">Carico i video…</div>`
-      : S.video.length ? `<div class="vuoto"><strong>Nessun video in questo stato</strong>Tocca di nuovo il riquadro in alto per togliere il filtro.</div>`
+      : S.video.length ? `<div class="vuoto"><strong>Nessun video qui</strong>${S.filtro ? "Tocca di nuovo il riquadro in alto per togliere il filtro." : "Questo cliente non ha ancora video in lavorazione."}</div>`
       : `<div class="vuoto"><strong>Ancora nessun video</strong>Quando chiedi a Claude di montare un video, compare qui con il suo stato e l'anteprima da commentare.</div>`;
     return;
   }
@@ -369,7 +391,20 @@ function disegnaMontaggio(v) {
   const vv = Array.isArray(v.versioni) ? v.versioni : [], tracce = v.tracce || [], file = v.consegna || [];
   const blocco = (titolo, dentro) => `<section class="blocco"><h3>${titolo}</h3><ul class="lista">${dentro}</ul></section>`;
   const vuoto = (t) => `<li class="vuoto">${t}</li>`;
-  $("p-montaggio").innerHTML =
+  if ($("p-montaggio").contains(document.activeElement) && document.activeElement.matches("input, textarea")) return;
+  const pr = v.programmazione || {}, puoProgrammare = v.stato === "approvato" || v.stato === "programmato";
+  const quando = pr.quando ? new Date(pr.quando).toLocaleString("it-IT", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) : "";
+  const programma = `<section class="blocco"><h3>Programmazione</h3>` + (!puoProgrammare
+    ? `<ul class="lista">${vuoto("Quando il video è approvato scegli qui giorno, ora, canali e didascalia.")}</ul>`
+    : `<form class="programma" id="form-programma">
+        ${pr.stato === "fatta" ? `<div><strong>Programmato per ${esc(quando)}</strong> su ${esc((pr.canali || []).join(", "))}.</div>`
+          : pr.stato === "richiesta" ? `<div><strong>Richiesta salvata per ${esc(quando)}.</strong> Di' a Claude di programmarlo.</div>` : ""}
+        <div class="riga"><label for="pr-quando">Giorno e ora</label><input type="datetime-local" id="pr-quando" value="${esc(pr.quando || "")}" required></div>
+        <div class="riga">${CANALI.map((c) => `<label class="canale"><input type="checkbox" name="canale" value="${c}" ${(pr.canali || []).includes(c) ? "checked" : ""}>${c}</label>`).join("")}</div>
+        <label for="pr-testo">Didascalia</label><textarea id="pr-testo">${esc(pr.testo || "")}</textarea>
+        <div class="riga"><button class="btn primario" type="submit" ${S.puoScrivere ? "" : "disabled"}>${pr.stato ? "Aggiorna la richiesta" : "Chiedi di programmarlo"}</button><span class="meta" id="pr-esito"></span></div>
+      </form>`) + `</section>`;
+  $("p-montaggio").innerHTML = programma +
     blocco("Strati del montaggio", tracce.length ? tracce.flatMap((tr) => (tr.elementi || []).map((e) =>
       `<li class="elemento"><span class="chip">${esc(tr.nome)}</span><span class="nome">${esc(e.etichetta || "")}</span>
        <button class="btn piccolo tc" type="button" data-vai="${e.inizio}">${tc(e.inizio)}–${tc(e.fine)}</button>
@@ -444,12 +479,17 @@ function disegnaScheda() {
   ascoltaTesto(v);
   montaVideo(v); disegnaNote(v); disegnaTagli(v); disegnaTesto(v); disegnaMontaggio(v); disegnaBarra();
 }
-function disegna() { disegnaStati(); disegnaElenco(); disegnaScheda(); }
+function disegna() { disegnaAree(); disegnaStati(); disegnaElenco(); disegnaScheda(); }
 
 function scegli(id) { S.scelto = id; S.scheda = "note"; S.versione = null; S.sel = null; try { localStorage.setItem("sm-scelto", id); } catch (e) {} $("n-testo").value = ""; $("n-esito").textContent = ""; disegna(); }
 
 document.addEventListener("click", async (ev) => {
   const b = ev.target.closest("button"); if (!b) return;
+  if (b.dataset.area !== undefined) {
+    S.area = b.dataset.area || null; try { S.area ? localStorage.setItem("sm-area", S.area) : localStorage.removeItem("sm-area"); } catch (e) {}
+    const v0 = videoScelto(); if (v0 && S.area && clienteDi(v0) !== S.area) S.scelto = null;
+    disegna(); return;
+  }
   if (b.dataset.stato) { S.filtro = S.filtro === b.dataset.stato ? null : b.dataset.stato; disegnaStati(); disegnaElenco(); return; }
   if (b.dataset.video) { scegli(b.dataset.video); return; }
   if (b.dataset.vai !== undefined) { vaiA(Number(b.dataset.vai)); return; }
@@ -497,6 +537,16 @@ function aggiungiNota(v, { girato, ...campi }) {
   return scrivi(() => S.db.collection("note").add({ video: v.id, stato: "aperta", versione: vista(v).n, su: girato ? "girato" : (vista(v).fase || "girato"),
     creato: new Date().toISOString(), ...campi, t: Math.round(campi.t * 10) / 10 }));
 }
+document.addEventListener("submit", async (ev) => {
+  if (ev.target.id !== "form-programma") return;
+  ev.preventDefault();
+  const v = videoScelto(); if (!v) return;
+  const canali = [...ev.target.querySelectorAll('input[name="canale"]:checked')].map((c) => c.value), quando = $("pr-quando").value;
+  if (!quando || !canali.length) { $("pr-esito").textContent = "Scegli giorno, ora e almeno un canale."; return; }
+  const testo = $("pr-testo").value.trim();
+  if (document.activeElement) document.activeElement.blur();
+  await tocca(v.id, { programmazione: { quando, canali, testo, stato: "richiesta" } });
+});
 $("scegli-versione").addEventListener("change", (ev) => { S.versione = ev.target.value; disegnaScheda(); });
 $("form-correggi").addEventListener("submit", async (ev) => {
   ev.preventDefault();

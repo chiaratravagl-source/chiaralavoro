@@ -74,12 +74,16 @@ Pagina privata di Chiara: https://claude.ai/artifact/DJtcLcnkKJ9qKKVALvSY9j
 I dati stanno nel database della pagina e si leggono/scrivono con lo strumento `ArtifactData`.
 
 - `video/NOME` — `titolo`, `cliente`, `formato`, `stato` (`in_montaggio` = palla a Claude,
-  `in_attesa` = serve l'ok di Chiara, `da_modificare`, `approvato`, `consegnato`), `fase`
-  (`girato`, `trascrizione`, `tagli`, `bozza`, `render`, `consegna`), `versione`, `messaggio`
+  `in_attesa` = serve l'ok di Chiara, `da_modificare`, `approvato`, `programmato`), `fase`
+  (`girato`, `trascrizione`, `tagli`, `bozza`, `render`, `programmazione`), `versione`, `messaggio`
   (cosa serve da Chiara adesso), `anteprima` + `fase_anteprima`, `versioni`
   (`[{n, fase, anteprima, cosa}]`), `tagli` + `tagli_approvati`, `tracce`
   (`[{nome, elementi: [{inizio, fine, etichetta}]}]`, tempi sul video tagliato),
-  `consegna` (`[{nome, url}]`), `aggiornato`.
+  `consegna` (`[{nome, url}]`), `programmazione` (`{quando, canali, testo, stato}`:
+  Chiara la compila dalla dashboard con `stato: "richiesta"`; dopo aver programmato
+  davvero il post metti `stato: "fatta"` e il video in `stato: "programmato"`), `aggiornato`.
+- Il campo `cliente` è l'**area di lavoro**: la dashboard si filtra per cliente, quindi
+  scrivilo sempre e sempre uguale (stesso nome del file in `video/stili/`).
 - `testo/NOME` — `parole: [{t0, t1, p}]` (tempi sul girato).
 - `note/ID` — richieste di Chiara: `video`, `t`, `su` (su quale anteprima è il tempo:
   `girato`, `bozza`, `finale`), `versione`, `tipo`, `testo`, `stato` (`aperta`/`risolta`),
