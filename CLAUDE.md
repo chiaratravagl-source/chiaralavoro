@@ -114,6 +114,19 @@ scaricare video grandi. Per portare un video nella sessione: Chiara lo condivide
 "chiunque abbia il link" e si scarica da `drive.google.com` (host già consentiti
 nell'ambiente cloud `chiaralavoro`). I video dell'app Foto vanno prima messi su Drive.
 
+**Caricare su Drive dalla sessione cloud non funziona per i video**: ogni chiamata al
+connettore porta al massimo circa 3 MB di file (verificato: un MP4 da 3,7 MB è stato
+rifiutato). Il file finale va quindi inviato a Chiara in chat, oppure serve un'altra
+strada decisa da lei; non aggirare il limite di iniziativa.
+
+### Programmazione dei post
+
+Si programma con il connettore Metricool (collegato; un brand per cliente, elenco con
+`getBrandSettings`, fuso `Europe/Rome`). A Metricool serve il video a un indirizzo pubblico:
+accetta link Google Drive se Drive è collegato all'account Metricool. Si programma solo un
+video approvato, con giorno, ora, canali e didascalia presi dalla richiesta in dashboard,
+e solo quando Chiara lo chiede.
+
 ### Guida di stile dei sottotitoli
 
 Un file JSON per cliente in `video/stili/`, partendo da `_esempio.json`. Campi: `font`,
