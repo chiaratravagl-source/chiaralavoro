@@ -38,7 +38,8 @@ soltanto per la trascrizione).
 2. **Trascrivi**
    `python3 video/pipeline.py trascrivi NOME`
    faster-whisper `large-v3`, italiano, timestamp per parola → `trascrizione.json` e `.txt`.
-   (Su CPU; in una sessione nuova il modello, circa 3 GB, va riscaricato da huggingface.)
+   (Su CPU. Sul computer di Chiara il modello, circa 3 GB, si scarica una volta sola; nell'ambiente
+   cloud `chiaralavoro` lo scarica lo script di avvio a ogni sessione nuova.)
    Rileggi la trascrizione e correggi gli errori (nomi propri, marchi, termini tecnici)
    nel campo `parola` di `trascrizione.json`: `.srt` e sottotitoli impressi nascono da lì.
 3. **Proponi i tagli e aspetta l'ok**
@@ -124,7 +125,17 @@ strada decisa da lei; non aggirare il limite di iniziativa.
 Chiara ha scelto di far girare il montaggio sul suo computer, dove Google Drive per
 desktop sincronizza le cartelle dei clienti: lì il girato si legge direttamente dalla
 cartella Drive e i file finali si scrivono nella cartella Drive del cliente, senza link
-e senza limiti di peso. Alla prima sessione sul computer:
+e senza limiti di peso.
+
+**Già fatto (non richiederlo a Chiara):** il computer è un **Mac**; **Google Drive per desktop**
+e l'**app Claude desktop** sono installati. Chiara usa Claude dall'app desktop.
+
+**Attenzione a dove gira la sessione.** Anche se aperta dall'app, una sessione può girare nel
+cloud (Linux, cartelle `/home/user/...`): lì il Mac non si vede. Se ti chiedono di preparare il
+computer e sei nel cloud, dillo subito e spiega a Chiara di aprire una nuova sessione scegliendo
+il suo computer (locale) invece del cloud, senza ripeterle passi già fatti.
+
+Alla prima sessione sul computer:
 
 1. Controlla cosa c'è già: `ffmpeg -version` (serve il filtro `ass`: `ffmpeg -filters | grep ass`),
    `python3 --version`, `python3 -c "import faster_whisper"`. Quello che manca **chiedilo
