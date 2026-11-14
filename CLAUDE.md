@@ -119,6 +119,24 @@ connettore porta al massimo circa 3 MB di file (verificato: un MP4 da 3,7 MB è 
 rifiutato). Il file finale va quindi inviato a Chiara in chat, oppure serve un'altra
 strada decisa da lei; non aggirare il limite di iniziativa.
 
+### Sessione sul computer di Chiara (strada scelta per i video veri)
+
+Chiara ha scelto di far girare il montaggio sul suo computer, dove Google Drive per
+desktop sincronizza le cartelle dei clienti: lì il girato si legge direttamente dalla
+cartella Drive e i file finali si scrivono nella cartella Drive del cliente, senza link
+e senza limiti di peso. Alla prima sessione sul computer:
+
+1. Controlla cosa c'è già: `ffmpeg -version` (serve il filtro `ass`: `ffmpeg -filters | grep ass`),
+   `python3 --version`, `python3 -c "import faster_whisper"`. Quello che manca **chiedilo
+   prima di installarlo** (regola fissa), poi installalo e riprova.
+2. Chiedi a Chiara il percorso della cartella Drive dei clienti e annotalo qui sotto.
+3. Verifica che gli strumenti della dashboard (`Artifact`, `ArtifactData`) e Metricool
+   siano disponibili anche in quella sessione; se non lo sono, dillo subito.
+4. I file di lavoro restano in `video/lavori/` (fuori da Drive); in Drive vanno solo i tre
+   file di consegna, in una sottocartella concordata con Chiara.
+
+Percorso Drive dei clienti sul computer: _da compilare alla prima sessione_.
+
 ### Programmazione dei post
 
 Si programma con il connettore Metricool (collegato; un brand per cliente, elenco con
