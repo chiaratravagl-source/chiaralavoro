@@ -22,7 +22,10 @@ soltanto per la trascrizione).
   sottotitoli, file `.srt`.
 - I sottotitoli seguono la **guida di stile del cliente** (`video/stili/CLIENTE.json`).
   Non inventare lo stile: se la guida del cliente non c'è, chiedila. `_esempio.json` è solo un modello.
-- Formato finale: **1080x1920**, H.264 + AAC, audio a −14 LUFS.
+- Formato finale: **1080x1920** (9:16) per i verticali, H.264 + AAC, audio a −14 LUFS.
+  Il formato si sceglie in `normalizza --formato` (`9:16`, `16:9` = 1920x1080 per YouTube,
+  `1:1`, `4:5`); senza opzione: 16:9 se il girato è orizzontale, altrimenti 9:16.
+- Ogni video in lavorazione va tenuto aggiornato nella dashboard **Sala Montaggio** (vedi sotto).
 
 ### Procedura
 
@@ -35,6 +38,7 @@ soltanto per la trascrizione).
 2. **Trascrivi**
    `python3 video/pipeline.py trascrivi NOME`
    faster-whisper `large-v3`, italiano, timestamp per parola → `trascrizione.json` e `.txt`.
+   (Su CPU; in una sessione nuova il modello, circa 3 GB, va riscaricato da huggingface.)
    Rileggi la trascrizione e correggi gli errori (nomi propri, marchi, termini tecnici)
    nel campo `parola` di `trascrizione.json`: `.srt` e sottotitoli impressi nascono da lì.
 3. **Proponi i tagli e aspetta l'ok**
@@ -62,11 +66,55 @@ soltanto per la trascrizione).
 `python3 video/pipeline.py sottotitoli NOME` rigenera solo `.srt`/`.ass` senza render.
 I parametri dei tagli (soglia pausa, margini) sono opzioni di `proponi-tagli` (`--help`).
 
+### Dashboard "Sala Montaggio"
+
+Pagina privata di Chiara: https://claude.ai/artifact/DJtcLcnkKJ9qKKVALvSY9j
+(sorgente: `video/dashboard/sala-montaggio.html`; per aggiornarla ripubblica con quell'URL).
+È il posto dove Chiara vede lo stato dei video, guarda le anteprime e chiede modifiche.
+I dati stanno nel database della pagina e si leggono/scrivono con lo strumento `ArtifactData`.
+
+- `video/NOME` — `titolo`, `cliente`, `formato`, `stato` (`in_montaggio` = palla a Claude,
+  `in_attesa` = serve l'ok di Chiara, `da_modificare`, `approvato`, `consegnato`), `fase`
+  (`girato`, `trascrizione`, `tagli`, `bozza`, `render`, `consegna`), `versione`, `messaggio`
+  (cosa serve da Chiara adesso), `anteprima` + `fase_anteprima`, `versioni`
+  (`[{n, fase, anteprima, cosa}]`), `tagli` + `tagli_approvati`, `tracce`
+  (`[{nome, elementi: [{inizio, fine, etichetta}]}]`, tempi sul video tagliato),
+  `consegna` (`[{nome, url}]`), `aggiornato`.
+- `testo/NOME` — `parole: [{t0, t1, p}]` (tempi sul girato).
+- `note/ID` — richieste di Chiara: `video`, `t`, `su` (su quale anteprima è il tempo:
+  `girato`, `bozza`, `finale`), `versione`, `tipo`, `testo`, `stato` (`aperta`/`risolta`),
+  `risposta`. Le note `tipo: "correzione"` hanno anche `originale`, `nuovo`, `i0`, `i1`
+  (indici delle parole in `testo/NOME`).
+
+Come si usa durante un lavoro:
+
+1. A ogni passo: `python3 video/pipeline.py scheda NOME` e
+   `python3 video/pipeline.py anteprima NOME --fase girato|bozza|tagliato|finale`
+   (file ≤ 14 MB); carica l'anteprima come asset della pagina, poi scrivi `video/NOME`
+   (da `scheda_video.json` + campi di stato) e `testo/NOME` (da `scheda_testo.json`).
+2. Quando serve un ok metti `stato: "in_attesa"` e spiega in `messaggio` cosa va guardato.
+3. Quando Chiara dice di aver lasciato feedback: leggi `video/NOME` e le `note` aperte.
+   - I tagli spuntati/aggiunti in dashboard vanno riportati in `tagli.json`;
+     `tagli_approvati: true` nella dashboard vale come ok alla lista tagli.
+   - Le correzioni vanno applicate a `trascrizione.json`; le altre note al montaggio.
+   - Su ogni nota scrivi `risposta` (cosa hai fatto) e `stato: "risolta"`.
+4. Nuova anteprima = nuova `versione` e nuova voce in `versioni` con `cosa` è cambiato.
+5. La dashboard non avvisa da sola: si leggono i feedback quando Chiara lo chiede.
+
+Il video `esempio` nella dashboard è finto (serve a provare la pagina): si può cancellare.
+
+### Da dove arriva il girato
+
+I file stanno su Google Drive. Il connettore Drive serve per cercare e leggere, non per
+scaricare video grandi. Per portare un video nella sessione: Chiara lo condivide con
+"chiunque abbia il link" e si scarica da `drive.google.com` (host già consentiti
+nell'ambiente cloud `chiaralavoro`). I video dell'app Foto vanno prima messi su Drive.
+
 ### Guida di stile dei sottotitoli
 
 Un file JSON per cliente in `video/stili/`, partendo da `_esempio.json`. Campi: `font`,
 `cartella_font` (cartella con i file del font, se non è installato), `grassetto`,
-`dimensione` (px su 1920 di altezza), `colore_testo`, `colore_contorno`,
+`dimensione` (px sull'altezza del formato: 1920 per i verticali, 1080 per i 16:9), `colore_testo`, `colore_contorno`,
 `spessore_contorno`, `ombra`, `sfondo` (`{"colore", "opacita"}` per il riquadro),
 `colore_evidenza` (colore della parola pronunciata, `null` = nessuna evidenza),
 `maiuscolo`, `rimuovi_punteggiatura`, `allineamento` (`basso`/`centro`/`alto`),

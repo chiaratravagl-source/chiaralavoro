@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pipeline video: dal girato all'MP4 finale 1080x1920 con sottotitoli impressi.
+"""Pipeline video: dal girato all'MP4 finale (1080x1920 o altri formati) con sottotitoli impressi.
 
 Passi (ognuno è un sottocomando, vedi CLAUDE.md per la procedura completa):
 
@@ -9,8 +9,10 @@ Passi (ognuno è un sottocomando, vedi CLAUDE.md per la procedura completa):
   tagli NOME                 mostra la lista tagli corrente
   sottotitoli NOME           genera NOME.srt e sottotitoli.ass (timeline già tagliata)
   bozza NOME                 primi 15 s tagliati + sottotitoli, per approvazione
-  taglia NOME                NOME_tagliato.mp4 (1080x1920, senza sottotitoli)
+  taglia NOME                NOME_tagliato.mp4 (senza sottotitoli)
   imprimi NOME               NOME_finale.mp4 (sottotitoli impressi)
+  anteprima NOME             versione compressa per la dashboard Sala Montaggio
+  scheda NOME                dati del lavoro nel formato della dashboard
 
 Dipendenze: ffmpeg/ffprobe (con libass) e, solo per `trascrivi`, faster-whisper.
 Tutto il resto è libreria standard. I file di lavoro stanno in video/lavori/NOME/.
@@ -27,7 +29,8 @@ from pathlib import Path
 RADICE = Path(__file__).resolve().parent
 LAVORI = RADICE / "lavori"
 
-LARGHEZZA, ALTEZZA = 1080, 1920
+FORMATI = {"9:16": (1080, 1920), "16:9": (1920, 1080), "1:1": (1080, 1080), "4:5": (1080, 1350)}
+ANTEPRIMA_MAX_MB = 14  # la dashboard accetta file fino a 15 MB
 LUFS, PICCO, LRA = -14.0, -1.5, 11.0
 FPS_STANDARD = [Fraction(24000, 1001), Fraction(24), Fraction(25), Fraction(30000, 1001),
                 Fraction(30), Fraction(50), Fraction(60000, 1001), Fraction(60)]
@@ -83,6 +86,10 @@ def scrivi(p, dati):
     Path(p).write_text(json.dumps(dati, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def dimensioni(d):
+    return FORMATI[leggi(d / "lavoro.json").get("formato", "9:16")]
+
+
 def tempo(t):
     return f"{int(t // 60)}:{t % 60:05.2f}"
 
@@ -111,8 +118,10 @@ def cmd_normalizza(a):
     larg, alt = int(video["width"]), int(video["height"])
     if rotazione in (90, 270):
         larg, alt = alt, larg
-    if abs(larg / alt - LARGHEZZA / ALTEZZA) > 0.02:
-        print(f"  ATTENZIONE: la sorgente è {larg}x{alt}, non 9:16: verrà ritagliata al centro.")
+    formato = a.formato or ("16:9" if larg > alt else "9:16")
+    L, A = FORMATI[formato]
+    if abs(larg / alt - L / A) > 0.02:
+        print(f"  ATTENZIONE: la sorgente è {larg}x{alt}, non {formato}: verrà ritagliata al centro.")
     if video.get("color_transfer") in ("arib-std-b67", "smpte2084"):
         print("  ATTENZIONE: sorgente HDR: i colori possono risultare slavati, verifica nella bozza.")
 
@@ -134,7 +143,7 @@ def cmd_normalizza(a):
 
     scrivi(d / "lavoro.json", {
         "nome": a.nome, "sorgente": str(sorgente), "durata": float(info["format"]["duration"]),
-        "fps": f"{fps.numerator}/{fps.denominator}", "larghezza": larg, "altezza": alt,
+        "fps": f"{fps.numerator}/{fps.denominator}", "larghezza": larg, "altezza": alt, "formato": formato,
         "volume_origine_lufs": float(m["input_i"]),
     })
     print(f"Fatto: {d / 'audio_norm.flac'}")
@@ -154,7 +163,11 @@ def cmd_trascrivi(a):
     print(f"Carico {a.modello} su {'GPU' if gpu else 'CPU'}…", flush=True)
     modello = WhisperModel(a.modello, device="cuda" if gpu else "cpu",
                            compute_type="float16" if gpu else "int8")
-    segmenti, info = modello.transcribe(str(d / "audio_norm.flac"), language="it",
+    # decodifica con ffmpeg (16 kHz mono) invece che con la libreria interna di faster-whisper
+    import numpy
+    grezzo = subprocess.run(["ffmpeg", "-v", "error", "-i", str(d / "audio_norm.flac"), "-ac", "1", "-ar", "16000",
+                             "-f", "f32le", "-"], check=True, capture_output=True).stdout
+    segmenti, info = modello.transcribe(numpy.frombuffer(grezzo, dtype=numpy.float32), language="it",
                                         word_timestamps=True, vad_filter=True, beam_size=5)
     out = []
     for s in segmenti:
@@ -418,6 +431,7 @@ def colore_ass(esadecimale, opacita=1.0):
 
 def genera_sottotitoli(d, percorso_stile):
     nome = leggi(d / "lavoro.json")["nome"]
+    L, A = dimensioni(d)
     stile = carica_stile(d, percorso_stile)
     parole, durata = parole_montate(d)
     blocchi = blocchi_sottotitoli(parole, durata, stile)
@@ -471,8 +485,8 @@ def genera_sottotitoli(d, percorso_stile):
             eventi.append(f"Dialogue: 0,{ass_t(b['inizio'])},{ass_t(b['fine'])},Sub,,0,0,0,,{riga_ass(b)}")
     (d / "sottotitoli.ass").write_text(f"""[Script Info]
 ScriptType: v4.00+
-PlayResX: {LARGHEZZA}
-PlayResY: {ALTEZZA}
+PlayResX: {L}
+PlayResY: {A}
 WrapStyle: 2
 ScaledBorderAndShadow: yes
 
@@ -506,10 +520,11 @@ def codifica_video(crf, preset):
 def taglia(d, uscita, limite=None):
     lavoro = leggi(d / "lavoro.json")
     tenuti, fps = montaggio(d)
+    L, A = dimensioni(d)
     n = len(tenuti)
     r = f"{fps.numerator}/{fps.denominator}"
-    f = [f"[0:v]fps={r}:start_time=0,scale={LARGHEZZA}:{ALTEZZA}:force_original_aspect_ratio=increase,"
-         f"crop={LARGHEZZA}:{ALTEZZA},setsar=1,format=yuv420p,split={n}" + "".join(f"[v{i}]" for i in range(n)),
+    f = [f"[0:v]fps={r}:start_time=0,scale={L}:{A}:force_original_aspect_ratio=increase,"
+         f"crop={L}:{A},setsar=1,format=yuv420p,split={n}" + "".join(f"[v{i}]" for i in range(n)),
          f"[1:a]asplit={n}" + "".join(f"[a{i}]" for i in range(n))]
     for i, (k, m) in enumerate(tenuti):
         dur = float((m - k) / fps)
@@ -572,6 +587,54 @@ def cmd_imprimi(a):
           f"  {tagliato.name}  (tagliato, senza sottotitoli)\n  {a.nome}.srt")
 
 
+# --------------------------------------------------------------------------- 6. dashboard
+
+def cmd_anteprima(a):
+    """Versione compressa (≤ 14 MB) da caricare nella dashboard Sala Montaggio."""
+    d = cartella(a.nome)
+    lavoro = leggi(d / "lavoro.json")
+    L, A = dimensioni(d)
+    sorgenti = {"girato": Path(lavoro["sorgente"]), "bozza": d / f"{a.nome}_bozza15s.mp4",
+                "tagliato": d / f"{a.nome}_tagliato.mp4", "finale": d / f"{a.nome}_finale.mp4"}
+    ingresso = sorgenti[a.fase]
+    if not ingresso.exists():
+        errore(f"manca {ingresso.name}: genera prima quella fase")
+    durata = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
+                                   str(ingresso)], check=True, capture_output=True, text=True).stdout)
+    lato = 540 if L < A else 960  # larghezza dell'anteprima
+    kbit = int(min(1400, ANTEPRIMA_MAX_MB * 8000 / max(durata, 1) - 64))
+    if kbit < 150:
+        errore(f"video troppo lungo ({tempo(durata)}) per un'anteprima da {ANTEPRIMA_MAX_MB} MB: va divisa in parti")
+    uscita = d / f"{a.nome}_anteprima_{a.fase}.mp4"
+    filtro = f"scale={lato}:-2"
+    if a.fase == "girato":  # stesso ritaglio e stessi fotogrammi del montaggio, così i tempi coincidono
+        filtro = (f"fps={lavoro['fps']}:start_time=0,scale={L}:{A}:force_original_aspect_ratio=increase,"
+                  f"crop={L}:{A},scale={lato}:-2")
+    audio = ["-i", d / "audio_norm.flac", "-map", "0:v:0", "-map", "1:a:0"] if a.fase == "girato" else []
+    esegui(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", ingresso, *audio, "-vf", filtro,
+            "-c:v", "libx264", "-preset", "medium", "-b:v", f"{kbit}k", "-maxrate", f"{kbit}k",
+            "-bufsize", f"{kbit * 2}k", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "64k", "-ac", "1",
+            "-movflags", "+faststart", uscita])
+    print(f"Anteprima ({uscita.stat().st_size / 1e6:.1f} MB): {uscita}")
+
+
+def cmd_scheda(a):
+    """Esporta i dati del lavoro nel formato della dashboard (li carica poi Claude)."""
+    d = cartella(a.nome)
+    lavoro = leggi(d / "lavoro.json")
+    scheda = {"durata_girato": round(lavoro["durata"], 2), "formato": lavoro.get("formato", "9:16")}
+    if (d / "tagli.json").exists():
+        dati = leggi(d / "tagli.json")
+        scheda["tagli"] = dati["tagli"]
+        scheda["tagli_approvati"] = bool(dati["approvato"])
+    scrivi(d / "scheda_video.json", scheda)
+    if (d / "trascrizione.json").exists():
+        parole = [{"t0": w["inizio"], "t1": w["fine"], "p": w["parola"].strip()} for w in parole_di(d)]
+        scrivi(d / "scheda_testo.json", {"parole": parole})
+    print(f"Schede per la dashboard in {d}: scheda_video.json" +
+          (", scheda_testo.json" if (d / "scheda_testo.json").exists() else ""))
+
+
 # --------------------------------------------------------------------------- CLI
 
 def main():
@@ -589,6 +652,8 @@ def main():
 
     s = comando("normalizza", cmd_normalizza)
     s.add_argument("sorgente")
+    s.add_argument("--formato", choices=sorted(FORMATI), help="formato di uscita (default: 9:16, o 16:9 "
+                   "se il girato è orizzontale)")
     s.add_argument("--fps", help="forza i fotogrammi al secondo (default: quelli della sorgente)")
     s = comando("trascrivi", cmd_trascrivi)
     s.add_argument("--modello", default="large-v3")
@@ -605,6 +670,9 @@ def main():
     s.add_argument("--secondi", type=int, default=15)
     comando("taglia", cmd_taglia)
     comando("imprimi", cmd_imprimi, stile=True)
+    s = comando("anteprima", cmd_anteprima)
+    s.add_argument("--fase", choices=["girato", "bozza", "tagliato", "finale"], default="girato")
+    comando("scheda", cmd_scheda)
 
     a = p.parse_args()
     if not re.fullmatch(r"[\w-]+", a.nome):
